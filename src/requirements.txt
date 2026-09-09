@@ -1,0 +1,23 @@
+python-dotenv
+microsoft-agents-hosting-aiohttp
+microsoft-agents-authentication-msal
+openai
+
+# Microsoft Agent Framework -- the governed "brain"; agent-framework-core is
+# the confirmed real package name (pip freeze showed 1.17.0, a stable release
+# number, not a pre-release tag, when installed via `pip install agent-framework --pre`).
+agent-framework
+agent-framework-openai
+
+# Agent Governance Toolkit -- installs agent-governance-toolkit-core,
+# -protocols, -integrations, -cli as sub-distributions. This project's real
+# governance pipeline (governed_agent/governance_pipeline.py) uses three
+# top-level importable modules from this install, all confirmed real by
+# direct inspection: agentmesh.governance (PolicyEngine, AuditLog,
+# FileAuditSink, ComplianceEngine, enable_otel), agent_os (rate limiter,
+# circuit breaker, prompt injection detector), agent_sre (SLO/error-budget,
+# cost SLI). agent_control_plane and the policies/rego/ Rego-file approach
+# from an earlier version of this project were superseded once the richer,
+# native-YAML agentmesh.governance.PolicyEngine was found and verified --
+# see docs/implementation-notes.md for that investigation.
+agent-governance-toolkit[full]

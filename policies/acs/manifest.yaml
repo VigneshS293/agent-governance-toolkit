@@ -1,0 +1,33 @@
+# Real Agent Control Specification (ACS) manifest -- built and verified
+# against the actual agent_control_specification 0.3.1b1 Python SDK, built
+# from source via maturin (see docs/implementation-notes.md for the build
+# steps). Schema matches the pattern verified working in the reference
+# project at D:\Agent Governance Toolkit\agentframewokr+agt\
+# path2_acs_policy_host\manifest.yaml -- agent_control_specification_version,
+# intervention_points with JSONPath policy_target binding, type: rego with
+# a real OPA bundle directory.
+agent_control_specification_version: "0.3.0-alpha-agt"
+metadata:
+  name: finance-assistant-acs-host
+  version: "1.0.0"
+policies:
+  tools_policy:
+    type: rego
+    bundle: ./policy
+    query: data.agt.finance.tools.decision
+intervention_points:
+  pre_tool_call:
+    policy_target: "$.tool_call.args"
+    policy_target_kind: tool_args
+    tool_name_from: "$.tool_call.name"
+    policy:
+      id: tools_policy
+tools:
+  read_invoice:
+    clearance: internal
+  query_database:
+    clearance: internal
+  send_email:
+    clearance: internal
+  drop_table:
+    clearance: internal

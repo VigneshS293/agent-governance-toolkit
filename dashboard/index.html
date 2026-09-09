@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AGT Activity Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0c11; --panel: #12151c; --panel-2: #171b24;
+    --border: #262b36; --border-soft: #1e222b;
+    --text: #eef0f4; --text-2: #a4abbb; --text-3: #6b7284;
+    --accent: #5b8cf0; --accent-soft: #17233e;
+    --good: #3fbf85; --good-bg: #123526;
+    --warn: #d6a13c; --warn-bg: #3a2f14;
+    --crit: #ec5b6a; --crit-bg: #3a1820;
+    --purple: #a98bf5; --purple-bg: #241a3d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5;
+  }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 16px 28px; border-bottom: 1px solid var(--border); background: var(--panel);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .topbar h1 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .topbar .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .btn {
+    font-size: 12.5px; font-weight: 600; color: var(--text-2); background: var(--panel-2);
+    border: 1px solid var(--border); padding: 7px 12px; border-radius: 7px; cursor: pointer;
+  }
+  .btn:hover { color: var(--text); border-color: var(--accent); }
+
+  .content { max-width: 900px; margin: 0 auto; padding: 22px 20px 60px; }
+
+  .banner {
+    display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-radius: 9px;
+    border: 1px solid color-mix(in srgb, var(--crit) 40%, var(--border)); background: var(--crit-bg);
+    font-size: 12.5px; color: var(--text-2); margin-bottom: 18px;
+  }
+  .banner.hidden { display: none; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 15px;
+  }
+  .stat .label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+  .stat .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+  .stat .value.good { color: var(--good); }
+  .stat .value.crit { color: var(--crit); }
+
+  .feed { display: flex; flex-direction: column; gap: 10px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; border-left: 3px solid var(--border);
+  }
+  .card.allow, .card.warn-proceed { border-left-color: var(--good); }
+  .card.warn { border-left-color: var(--warn); }
+  .card.deny { border-left-color: var(--crit); }
+  .card.escalate { border-left-color: var(--purple); }
+
+  .card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .card-time { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .card-cat {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .card-title { font-size: 14px; font-weight: 600; margin-top: 4px; }
+  .card-title .action { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .card-desc { font-size: 12.5px; color: var(--text-2); margin-top: 3px; }
+  .card-identity {
+    font-size: 11px; color: var(--text-3); margin-top: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .identity-pill {
+    font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 20px;
+    background: var(--panel-2); color: var(--text-2); font-family: 'JetBrains Mono', monospace;
+  }
+  .identity-pill.sub { color: var(--purple); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+  }
+  .pill.good { color: var(--good); background: var(--good-bg); }
+  .pill.warn { color: var(--warn); background: var(--warn-bg); }
+  .pill.crit { color: var(--crit); background: var(--crit-bg); }
+  .pill.purple { color: var(--purple); background: var(--purple-bg); }
+  .pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  .card-meta {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11.5px; color: var(--text-3);
+  }
+  .card-meta b { color: var(--text-2); font-weight: 600; }
+
+  details { margin-top: 10px; }
+  summary {
+    font-size: 11.5px; font-weight: 600; color: var(--accent); cursor: pointer; list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: '\25b8 '; }
+  details[open] summary::before { content: '\25be '; }
+  .card-json {
+    margin-top: 8px; padding: 10px 12px; background: var(--panel-2); border-radius: 7px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-2);
+    white-space: pre-wrap; word-break: break-word; overflow-x: auto;
+  }
+
+  .empty {
+    text-align: center; padding: 60px 20px; color: var(--text-3); font-size: 13px;
+  }
+  .footer-note {
+    font-size: 11px; color: var(--text-3); text-align: center; margin-top: 24px; line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1>AGT Activity Dashboard</h1>
+      <!-- <div class="sub"><span class="live-dot"></span>finance-assistant-sample &middot; reads logs/audit.jsonl</div> -->
+    </div>
+    <div class="topbar-right">
+      <span class="sub" id="last-updated"></span>
+      <button class="btn" onclick="load()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="banner hidden" id="chain-banner"></div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="label">Total decisions</div><div class="value tabular" id="stat-total">&mdash;</div></div>
+      <div class="stat"><div class="label">Allowed / Warned</div><div class="value good tabular" id="stat-allowed">&mdash;</div></div>
+      <div class="stat"><div class="label">Denied</div><div class="value crit tabular" id="stat-denied">&mdash;</div></div>
+      <div class="stat"><div class="label">Chain integrity</div><div class="value" id="stat-chain">&mdash;</div></div>
+    </div>
+
+    <div class="feed" id="feed">
+      <div class="empty">Loading...</div>
+    </div>
+
+    <div class="footer-note">
+      Every card is built from a real audit.jsonl entry -- nothing here is simulated.<br/>
+      Auto-refreshes every 4 seconds. Older entries (written before cost/SLO/rate-limit fields<br/>
+      were added to the audit log) show those fields as "not recorded", not a fabricated value.
+    </div>
+  </div>
+
+<script>
+// Category + verdict styling driven entirely by real, exhaustive values
+// confirmed in governance_pipeline.py's _log_and_raise call sites
+// (Capability, RateLimit, KillSwitch, PromptInjection, Policy) and
+// policy_decision values (allow, warn, deny, require_approval). No other
+// category/verdict combination exists in this project's real code.
+// RawInputScan (maf_agent.py's raw-message scan, BEFORE the model is ever
+// called) is a REAL, distinct blocked_by value from PromptInjection
+// (governance_pipeline.py layer 4, the tool-ARGUMENT scan, run only after
+// the model decided to call a tool) -- was missing from this map entirely
+// until found by inspection here, which meant it displayed as the raw,
+// un-spaced string "RawInputScan" instead of a proper label.
+const CATEGORY_LABEL = {
+  Capability: 'Capability',
+  RateLimit: 'Rate Limit',
+  KillSwitch: 'Kill Switch',
+  PromptInjection: 'Prompt Injection (tool argument)',
+  RawInputScan: 'Prompt Injection (raw message)',
+  Policy: 'Policy',
+};
+
+// NOTE: require_approval must be checked BEFORE the generic outcome==='denied'
+// branch in all three functions below. A real bug, found by inspection of an
+// actual rendered card: an escalated-then-auto-rejected call genuinely has
+// outcome:"denied" in audit.jsonl (AutoRejectApproval always rejects, see
+// governance_pipeline.py), so checking outcome first meant this branch order
+// made the require_approval/"escalate" styling below completely unreachable
+// dead code -- every real escalation rendered as a plain generic "Denied"/
+// "Policy" card, identical to a hard block like block-destructive, even
+// though audit.jsonl's own policy_decision field already correctly says
+// "require_approval", not "deny". Fixed by checking policy_decision first.
+function verdictClass(entry) {
+  if (entry.policy_decision === 'require_approval') return 'escalate';
+  if (entry.outcome === 'denied') return 'deny';
+  if (entry.policy_decision === 'warn') return 'warn';
+  return 'allow';
+}
+
+function verdictPill(entry) {
+  if (entry.policy_decision === 'require_approval') return `<span class="pill purple"><span class="dot"></span>Escalated</span>`;
+  if (entry.outcome === 'denied') return `<span class="pill crit"><span class="dot"></span>Denied</span>`;
+  if (entry.policy_decision === 'warn') return `<span class="pill warn"><span class="dot"></span>Warn</span>`;
+  return `<span class="pill good"><span class="dot"></span>Allowed</span>`;
+}
+
+function categoryLabel(entry) {
+  if (entry.policy_decision === 'require_approval') return 'Approval';
+  if (entry.blocked_by) return CATEGORY_LABEL[entry.blocked_by] || entry.blocked_by;
+  return 'Policy';
+}
+
+function identityBadge(did) {
+  if (!did) return '';
+  const isSub = did.includes('subagent');
+  const shortName = did.split(':').pop();
+  return `<span class="identity-pill${isSub ? ' sub' : ''}">${shortName}</span>`;
+}
+
+function fmtNullable(v, suffix) {
+  if (v === null || v === undefined) return '<span style="color:var(--text-3)">not recorded</span>';
+  return suffix ? `${v}${suffix}` : String(v);
+}
+
+function timeAgo(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString() + ' &middot; ' + d.toLocaleDateString();
+}
+
+function renderCard(entry) {
+  const cls = verdictClass(entry);
+  const cat = categoryLabel(entry);
+  const cost = entry.estimated_cost_usd !== null && entry.estimated_cost_usd !== undefined
+    ? `$${entry.estimated_cost_usd}` : null;
+
+  let desc;
+  if (entry.policy_decision === 'require_approval') {
+    desc = `Escalated by rule <span class="mono">${entry.matched_rule || '-'}</span> &mdash; auto-rejected (no approver channel configured)`;
+  } else if (entry.injection_type) {
+    // injection_type/threat_level/confidence only ever appear on a
+    // RawInputScan or PromptInjection denial -- real fields written by
+    // agt_middleware.py's injection scan, previously dropped by the
+    // server's field whitelist (found by inspection, fixed alongside this).
+    desc = `Flagged as <span class="mono">${entry.injection_type}</span> `
+         + `(threat: ${entry.threat_level}, confidence: ${Math.round((entry.confidence || 0) * 100)}%)`;
+  } else if (entry.outcome === 'denied') {
+    desc = entry.matched_rule
+      ? `Blocked by rule <span class="mono">${entry.matched_rule}</span>`
+      : `Blocked at the ${cat} layer`;
+  } else if (entry.policy_decision === 'warn') {
+    desc = `Allowed, flagged by rule <span class="mono">${entry.matched_rule || '-'}</span>`;
+  } else {
+    desc = entry.matched_rule ? `Allowed &middot; rule <span class="mono">${entry.matched_rule}</span>` : 'Allowed, no rule matched';
+  }
+
+  return `
+    <div class="card ${cls}">
+      <div class="card-top">
+        <div>
+          <div class="card-cat">${cat}</div>
+          <div class="card-title"><span class="action">${entry.action}</span></div>
+        </div>
+        ${verdictPill(entry)}
+      </div>
+      <div class="card-desc">${desc}</div>
+      <div class="card-identity">${identityBadge(entry.agent_did)} <span>${timeAgo(entry.timestamp)}</span></div>
+      <div class="card-meta">
+        <span><b>Cost:</b> ${fmtNullable(cost)}</span>
+        <span><b>SLO:</b> ${fmtNullable(entry.slo_status)}</span>
+        <span><b>Rate budget left:</b> ${fmtNullable(entry.rate_limit_remaining)}</span>
+        <span><b>Compliance violations:</b> ${fmtNullable(entry.compliance_violations)}</span>
+        <span><b>Trust score:</b> ${fmtNullable(entry.trust_score)}</span>
+      </div>
+      <details>
+        <summary>Details</summary>
+        <div class="card-json">${JSON.stringify(entry, null, 2).replace(/</g, '&lt;')}</div>
+      </details>
+    </div>
+  `;
+}
+
+let lastRenderedIds = null;
+
+async function load() {
+  try {
+    const res = await fetch('/api/activity');
+    const data = await res.json();
+    const banner = document.getElementById('chain-banner');
+    const feed = document.getElementById('feed');
+
+    if (!data.available) {
+      feed.innerHTML = `<div class="empty">${data.reason}</div>`;
+      document.getElementById('stat-total').textContent = '0';
+      document.getElementById('stat-allowed').textContent = '0';
+      document.getElementById('stat-denied').textContent = '0';
+      document.getElementById('stat-chain').textContent = '—';
+      banner.classList.add('hidden');
+      return;
+    }
+
+    if (!data.chain_valid) {
+      banner.classList.remove('hidden');
+      banner.innerHTML = `⚠ Audit chain integrity check FAILED: ${data.chain_error}`;
+    } else {
+      banner.classList.add('hidden');
+    }
+
+    const entries = data.entries;
+    const denied = entries.filter(e => e.outcome === 'denied').length;
+    document.getElementById('stat-total').textContent = entries.length;
+    document.getElementById('stat-allowed').textContent = entries.length - denied;
+    document.getElementById('stat-denied').textContent = denied;
+    const chainEl = document.getElementById('stat-chain');
+    chainEl.textContent = data.chain_valid ? 'Verified' : 'FAILED';
+    chainEl.className = 'value ' + (data.chain_valid ? 'good' : 'crit');
+
+    // Only rewrite the feed's DOM when the set of entries actually changed.
+    // A plain 4s re-render of feed.innerHTML on every poll destroys and
+    // rebuilds every <details> element each time, silently collapsing any
+    // card you had open to read -- confirmed real, reported directly. Since
+    // entry_id is unique per audit.jsonl entry, comparing the joined list of
+    // ids against what was last rendered is enough to detect "new data
+    // arrived" vs "nothing changed, leave the DOM alone."
+    const newIds = entries.map(e => e.entry_id).join(',');
+    if (newIds !== lastRenderedIds) {
+      feed.innerHTML = entries.length
+        ? entries.map(renderCard).join('')
+        : '<div class="empty">No governed tool calls yet. Send a message to the agent in Teams to see activity here.</div>';
+      lastRenderedIds = newIds;
+    }
+
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (err) {
+    document.getElementById('feed').innerHTML = `<div class="empty">Could not reach the dashboard server: ${err}</div>`;
+  }
+}
+
+load();
+setInterval(load, 4000);
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Real policy manifest for the sample governed finance assistant, loaded
+# via agentmesh.governance.PolicyEngine.load_yaml_file() -- the SAME
+# mechanism proven working in the verified reference project at
+# D:\Agent Governance Toolkit\agentframewokr+agt\finance_agent_complete\
+# policies\manifest.yaml. Schema confirmed against the installed
+# agent-governance-toolkit[full] package by direct inspection
+# (PolicyEngine.load_yaml_file/load_policy/evaluate), not assumed.
+#
+# This supersedes the earlier, unparsed manifest.yaml and the separate
+# policies/rego/tools.rego file from this project's history (see
+# docs/implementation-notes.md for that investigation) -- this file is now
+# the one actually loaded and evaluated by governed_agent/governance_pipeline.py.
+apiVersion: governance.toolkit/v1
+name: finance-assistant-policy
+version: "1.0.0"
+agents: ["*"]
+default_action: allow
+
+rules:
+  - name: warn-sensitive-invoice-read
+    description: "Reading an invoice touches customer financial data -- logged as a warning for visibility, but the read is still allowed to proceed (this is what ratchets the session's DLP sensitivity, see the send_email rules below)"
+    stage: pre_tool
+    condition: "action.tool_name == 'read_invoice'"
+    action: warn
+    priority: 5
+
+  - name: block-destructive
+    description: "drop_table is never allowed, unconditionally"
+    stage: pre_tool
+    condition: "action.tool_name == 'drop_table'"
+    action: deny
+    priority: 40
+
+  - name: block-external-email-after-dlp-ratchet
+    description: "send_email to an external recipient is blocked once the session's DLP sensitivity has been ratcheted to restricted by an earlier sensitive read"
+    stage: pre_tool
+    condition: "action.tool_name == 'send_email' and action.dlp_ratchet == 'restricted' and action.recipient_is_external"
+    action: deny
+    priority: 30
+
+  - name: require-approval-large-email
+    description: "A send_email whose body exceeds 2000 characters needs a human approver, regardless of DLP state"
+    stage: pre_tool
+    condition: "action.tool_name == 'send_email' and action.body_length > 2000"
+    action: require_approval
+    approvers: ["finance-manager"]
+    priority: 20
